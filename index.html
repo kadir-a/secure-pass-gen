@@ -5,12 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Güvenli Şifre Oluşturucu</title>
     <style>
-        body { font-family: 'Courier New', monospace; background-color: #1a1a2e; color: #e94560; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background-color: #16213e; padding: 2rem; border-radius: 10px; box-shadow: 0 0 20px rgba(233, 69, 96, 0.2); width: 350px; text-align: center; border: 1px solid #0f3460; }
+        /* Ana Tasarım Ayarları */
+        body { 
+            font-family: 'Courier New', monospace; /* Hacker teması olsun diye monospaced font seçtim */
+            background-color: #1a1a2e; 
+            color: #e94560; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .container { 
+            background-color: #16213e; 
+            padding: 2rem; 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.2); 
+            width: 350px; 
+            text-align: center; 
+            border: 1px solid #0f3460; 
+        }
         h2 { margin-bottom: 1.5rem; color: #fff; text-transform: uppercase; letter-spacing: 2px; font-size: 1.2rem; }
-        .result-container { background-color: #0f3460; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; }
+        
+        /* Sonuç Kutusu */
+        .result-container { 
+            background-color: #0f3460; 
+            padding: 15px; 
+            border-radius: 5px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            position: relative; 
+        }
         #password { font-size: 1.2rem; color: #fff; word-break: break-all; }
-        .btn { background-color: #e94560; color: #fff; border: none; padding: 10px 20px; cursor: pointer; font-size: 1rem; border-radius: 5px; font-weight: bold; width: 100%; transition: 0.3s; }
+        
+        /* Butonlar ve Inputlar */
+        .btn { 
+            background-color: #e94560; 
+            color: #fff; 
+            border: none; 
+            padding: 10px 20px; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            width: 100%; 
+            transition: 0.3s; 
+        }
         .btn:hover { background-color: #c72c41; }
         .setting { display: flex; justify-content: space-between; align-items: center; margin: 15px 0; color: #a2a8d3; font-size: 0.9rem; }
         input[type="number"] { width: 50px; padding: 5px; border-radius: 5px; border: none; text-align: center; }
@@ -25,7 +67,7 @@
         
         <div class="result-container">
             <span id="password">Şifre Bekleniyor...</span>
-            <button class="copy-btn" onclick="copyPassword()" title="Kopyala">📋</button>
+            <button class="copy-btn" onclick="kopyala()" title="Kopyala">📋</button>
         </div>
 
         <div class="setting">
@@ -48,72 +90,101 @@
             <input type="checkbox" id="symbols" checked>
         </div>
 
-        <button class="btn" onclick="generatePassword()">Şifre Üret</button>
+        <button class="btn" onclick="sifreUret()">Şifre Üret</button>
 
         <div class="footer">Developed by Kadir Ayık | Security Tools</div>
     </div>
 
     <script>
-        const resultEl = document.getElementById('password');
-        const lengthEl = document.getElementById('length');
-        const uppercaseEl = document.getElementById('uppercase');
-        const numbersEl = document.getElementById('numbers');
-        const symbolsEl = document.getElementById('symbols');
+        // DOM Elementlerini (HTML kutucuklarını) değişkene atıyoruz
+        const sonucKutusu = document.getElementById('password');
+        const uzunlukKutusu = document.getElementById('length');
+        const buyukHarfKutusu = document.getElementById('uppercase');
+        const sayiKutusu = document.getElementById('numbers');
+        const sembolKutusu = document.getElementById('symbols');
 
+        // Rastgele karakter üreten fonksiyonları bir objede topladım
         const randomFunc = {
-            lower: getRandomLower,
-            upper: getRandomUpper,
-            number: getRandomNumber,
-            symbol: getRandomSymbol
+            lower: rastgeleKucukHarf,
+            upper: rastgeleBuyukHarf,
+            number: rastgeleSayi,
+            symbol: rastgeleSembol
         };
 
-        function generatePassword() {
-            const length = +lengthEl.value;
-            const hasLower = true; // Küçük harf her zaman olsun
-            const hasUpper = uppercaseEl.checked;
-            const hasNumber = numbersEl.checked;
-            const hasSymbol = symbolsEl.checked;
+        // BUTONA BASINCA ÇALIŞAN ANA FONKSİYON
+        function sifreUret() {
+            // Kullanıcının girdiği uzunluğu al (+ işareti sayıyı integer'a çeviriyor)
+            const uzunluk = +uzunlukKutusu.value;
+            
+            // Hangi kutucuklar işaretli kontrol et
+            const kucukVarMi = true; // Küçük harf her zaman olsun
+            const buyukVarMi = buyukHarfKutusu.checked;
+            const sayiVarMi = sayiKutusu.checked;
+            const sembolVarMi = sembolKutusu.checked;
 
-            resultEl.innerText = generatePasswordLogic(hasLower, hasUpper, hasNumber, hasSymbol, length);
+            // Hesaplama fonksiyonuna gönder
+            sonucKutusu.innerText = algoritmayiCalistir(kucukVarMi, buyukVarMi, sayiVarMi, sembolVarMi, uzunluk);
         }
 
-        function generatePasswordLogic(lower, upper, number, symbol, length) {
-            let generatedPassword = '';
-            const typesCount = lower + upper + number + symbol;
-            const typesArr = [{lower}, {upper}, {number}, {symbol}].filter(item => Object.values(item)[0]);
+        // ŞİFRE ÜRETME MANTIĞI (ALGORİTMA)
+        function algoritmayiCalistir(lower, upper, number, symbol, length) {
+            let uretilenSifre = '';
+            
+            // Kaç çeşit karakter seçildiğini bul
+            const cesitSayisi = lower + upper + number + symbol;
+            
+            // Seçilmeyenleri filtrele (Array filter kullandım)
+            const secilenTurler = [{lower}, {upper}, {number}, {symbol}].filter(item => Object.values(item)[0]);
 
-            if(typesCount === 0) return '';
+            // Hiçbir şey seçilmediyse boş dön
+            if(cesitSayisi === 0) return '';
 
-            for(let i = 0; i < length; i += typesCount) {
-                typesArr.forEach(type => {
+            // Döngü kurarak şifreyi oluşturuyoruz
+            for(let i = 0; i < length; i += cesitSayisi) {
+                secilenTurler.forEach(type => {
                     const funcName = Object.keys(type)[0];
-                    generatedPassword += randomFunc[funcName]();
+                    // Fonksiyon listesinden rastgele karakter çekip ekliyoruz
+                    uretilenSifre += randomFunc[funcName]();
                 });
             }
 
-            const finalPassword = generatedPassword.slice(0, length);
+            // Fazlalık varsa kes ve son halini ver
+            const finalPassword = uretilenSifre.slice(0, length);
             return finalPassword;
         }
 
-        function getRandomLower() { return String.fromCharCode(Math.floor(Math.random() * 26) + 97); }
-        function getRandomUpper() { return String.fromCharCode(Math.floor(Math.random() * 26) + 65); }
-        function getRandomNumber() { return String.fromCharCode(Math.floor(Math.random() * 10) + 48); }
-        function getRandomSymbol() { 
-            const symbols = '!@#$%^&*(){}[]=<>/,.';
-            return symbols[Math.floor(Math.random() * symbols.length)];
+        // --- YARDIMCI FONKSİYONLAR ---
+        // ASCII kodlarını kullanarak rastgele karakter çekiyoruz
+
+        function rastgeleKucukHarf() {
+            return String.fromCharCode(Math.floor(Math.random() * 26) + 97);
         }
 
-        function copyPassword() {
-            const textarea = document.createElement('textarea');
-            const password = resultEl.innerText;
-            if(!password) return;
-            textarea.value = password;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            textarea.remove();
+        function rastgeleBuyukHarf() {
+            return String.fromCharCode(Math.floor(Math.random() * 26) + 65);
+        }
+
+        function rastgeleSayi() {
+            return String.fromCharCode(Math.floor(Math.random() * 10) + 48);
+        }
+
+        function rastgeleSembol() {
+            const semboller = '!@#$%^&*(){}[]=<>/,.';
+            return semboller[Math.floor(Math.random() * semboller.length)];
+        }
+
+        // Panoya Kopyalama İşlemi
+        function kopyala() {
+            const password = sonucKutusu.innerText;
+            if(!password || password === "Şifre Bekleniyor...") return;
+
+            // Tarayıcı panosuna yaz
+            navigator.clipboard.writeText(password);
             alert('Şifre Kopyalandı!');
         }
+    </script>
+</body>
+</html>
     </script>
 </body>
 </html>
